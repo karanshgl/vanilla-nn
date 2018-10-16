@@ -126,5 +126,5 @@ layer.update(0.01)
 maxpool = Maxpool((3,3), stride = 2)
 o2 = maxpool.forward_pass(o)
 print(o2.shape)
-maxpool.backward_pass(o,o2)
+print(maxpool.backward_pass(o,o2).shape)
 

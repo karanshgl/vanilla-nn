@@ -40,7 +40,6 @@ class Maxpool:
 						nc += 1
 					nr += 1
 
-		# self.output_units = input_units*self.masks
 		return self.output_units
 
 
@@ -61,7 +60,7 @@ class Maxpool:
 						nc += 1
 					nr += 1
 
-		return grad_activated_mask
+		return grad_activated_mask[:,:,self.padding[0]:-self.padding[0],self.padding[1]:-self.padding[1]]
 
 
 	def update(self, learning_rate):
