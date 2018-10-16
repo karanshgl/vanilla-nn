@@ -9,9 +9,9 @@ import utils
 #from keras.optimizers import SGD
 def getModel(X, Y, epochs):
 	model = Model(learning_rate = 0.0001, batch_size = 500, epochs = 1000)
-	model.add(Dense(1024, 512, activation = 'relu'))
+	model.add(Dense(1024, 512, activation = 'sigmoid'))
 	# model.add(Dropout(0.5))
-	model.add(Dense(512, 64, activation = 'relu'))
+	model.add(Dense(512, 64, activation = 'sigmoid'))
 	# model.add(Dropout(0.5))
 	model.add(Dense(64, 1))
 	print("starting to train")
