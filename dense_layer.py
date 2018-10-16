@@ -46,7 +46,6 @@ class Dense:
 		"""
 
 		grad_output_units = grad_activated_output*self.activation.derivative(self.output_units)
-		# print(grad_activated_output.shape)
 		self.grad_bias = grad_output_units.sum(axis=0)
 
 		self.grad_weights = np.matmul(input_units.T, grad_output_units)

@@ -35,14 +35,13 @@ class Model:
 
 			loss = 0
 			for x,y in self.generate_batches(X,Y):
-				
+	
 				self.units[0] = x
 				for i, layer in enumerate(self.layers):
 					self.units[i+1] = layer.forward_pass(self.units[i])
 
-
 				error = self.units[-1]-y.reshape((len(y), 1))
-				loss += np.square(error).sum()
+				loss += np.square(error).sum()/2
 
 				for layer, unit in zip(reversed(self.layers), reversed(self.units[:-1])):
 					error = layer.backward_pass(unit,error)

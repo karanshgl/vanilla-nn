@@ -1,17 +1,26 @@
 import numpy as np
 from model import Model
 from dense_layer import Dense
+from dropout import Dropout
 import pandas as pd
+import utils
 #from keras.models import Sequential
 #import keras.layers as L
 #from keras.optimizers import SGD
 def getModel(X, Y, epochs):
-	model = Model(learning_rate = 0.001, batch_size = 32, epochs = 10000)
-	model.add(Dense(20, 10, activation = 'sigmoid'))
-	model.add(Dense(10, 1))
+	model = Model(learning_rate = 0.0001, batch_size = 500, epochs = 1000)
+	model.add(Dense(1024, 512, activation = 'relu'))
+	# model.add(Dropout(0.5))
+	model.add(Dense(512, 64, activation = 'relu'))
+	# model.add(Dropout(0.5))
+	model.add(Dense(64, 1))
 	print("starting to train")
-	Y = Y.reshape(740,1)
 	model.train(X,Y)
+
+	# model.add(Dense(20,10, activation = 'relu'))
+	# model.add(Dropout(0.5))
+	# model.add(Dense(10,1))
+	# model.train(X,Y)
 		
 
 	#model.train(X, Y, lr, epochs)
@@ -38,12 +47,16 @@ def getKerasModel(X, Y):
 	return model
 
 
-data = pd.read_csv('datanew.csv')
-data = np.array(data.values)
-data_x = data[:, :-1]
-data_y = data[:, -1]
-X, Y = prepareData(data_x, data_y)
-# print(X.shape)
+# data = pd.read_csv('datanew.csv')
+# data = np.array(data.values)
+# data_x = data[:, :-1]
+# data_y = data[:, -1]
+# data_x, data_y = prepareData(data_x, data_y)
+# X = data_x
+# Y = data_y[:, np.newaxis]
+# print(X.shape, Y.shape)
+X, Y = utils.get_data('steering')
+X, Y = prepareData(X,Y)
 model = getModel(X, Y, 10000)
 """
 images, angles = loadImages('steering')

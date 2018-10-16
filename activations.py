@@ -13,3 +13,11 @@ class Activation:
 			if activation == "sigmoid":
 				self.function = lambda x : sigmoid(x)
 				self.derivative = lambda x : sigmoid(x)*(1-sigmoid(x))
+
+			if activation == "tanh":
+				self.function = lambda x : np.tanh(x)
+				self.derivative = lambda x : 1 - np.square(np.tanh(x))
+
+			if activation == "relu":
+				self.function = lambda x: (x>0)*x
+				self.derivative = lambda x: (x>0)*1
