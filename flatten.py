@@ -4,6 +4,7 @@ import numpy as np
 class Flatten:
 
 	def __init__(self):
+		self.output_units = None
 		pass
 
 	def forward_pass(self, input_units):
@@ -16,9 +17,12 @@ class Flatten:
 	def update(self, learning_rate):
 		pass
 
-fl = Flatten()
-a = np.arange(96)
-a = a.reshape(2,3,4,4)
-b = fl.forward_pass(a)
-b = fl.backward_pass(a,b)
-print(b)
+	def run(self, input_units):
+		return self.forward_pass(input_units)
+
+# fl = Flatten()
+# a = np.arange(96)
+# a = a.reshape(2,3,4,4)
+# b = fl.forward_pass(a)
+# b = fl.backward_pass(a,b)
+# print(b)

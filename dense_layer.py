@@ -44,7 +44,6 @@ class Dense:
 		Returns:
 		grad_activated_input
 		"""
-
 		grad_output_units = grad_activated_output*self.activation.derivative(self.output_units)
 		self.grad_bias = grad_output_units.sum(axis=0)
 
@@ -52,6 +51,9 @@ class Dense:
 		grad_activated_input = np.matmul(grad_output_units, self.weights.T)
 
 		return grad_activated_input
+
+	def run(self, input_units):
+		return self.forward_pass(input_units)
 
 
 	def update(self, learning_rate):

@@ -28,6 +28,9 @@ class Dropout:
 		"""
 		return grad_activated_output*self.mask
 
+	def run(self, input_units):
+		return input_units
+
 
 	def update(self, learning_rate):
 		pass

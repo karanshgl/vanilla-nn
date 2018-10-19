@@ -1,12 +1,8 @@
 import numpy as np
 from activations import Activation
 from maxpool import Maxpool
+from im2col import *
 
-# a = np.array([[[[1,2,3],[4,5,6],[7,8,9]]],[[[9,8,7],[6,5,4],[3,2,1]]]])
-a = np.ones((64,3,32,32))
-# k = np.array([[[1,1,1],[1,1,1],[1,1,1]]])
-# print(a.shape, k.shape)
-# print(signal.convolve(a, k, mode='valid')[0])
 
 class Conv2D:
 
@@ -23,108 +19,79 @@ class Conv2D:
 
 		num_weights = kernel_size[0]*kernel_size[1]
 		self.kernel_size = kernel_size
-		self.weights = np.array([np.random.normal(0.0, 1.0/np.sqrt(num_weights), kernel_size) for filter in range(filters)])
-		self.bias = np.array([np.random.normal(0.0, 1.0/np.sqrt(num_weights), (1, 1)) for filter in range(filters)])
+		self.weights = None
+		self.bias = None
 
-		self.padding = ((kernel_size[0]-1)//2, (kernel_size[1]-1)//2) if padding == 'same' else (0,0)
+		self.padding = (kernel_size[0]-1)//2 if padding == 'same' else 0
 		self.stride = stride
 		self.output_units = []
 
 		self.activation = Activation(activation)
 
 
-	def conv2d(self, image, kernel):
-
-		new_row = ((image.shape[0]-self.kernel_size[0] + 2*self.padding[0])//self.stride) + 1
-		new_col = ((image.shape[1]-self.kernel_size[1] + 2*self.padding[1])//self.stride) + 1
-
-		output = np.zeros((new_row, new_col))
-		image = np.pad(image, self.padding, 'constant')
-
-		old_row, old_col = image.shape
-		nr, nc = 0,0
-		for r in range(0, old_row - self.kernel_size[0] + 1, self.stride):
-			nc = 0
-			for c in range(0, old_col - self.kernel_size[1] + 1, self.stride):
-				window = image[r : r + self.kernel_size[0], c : c + self.kernel_size[1]]
-				output[nr,nc] = (np.multiply(window,kernel)).sum()
-				nc += 1
-			nr += 1
-
-		return output
-
-
 
 	def forward_pass(self, input_units):
 
-		output_units = []
-		for batch in input_units:
-			batch = batch.sum(axis=0)
-			depth_outputs = [self.conv2d(batch, kernel) for kernel, bias in zip(self.weights, self.bias)]
-			output_batch = np.array(depth_outputs)
-			output_units.append(output_batch)
+		if self.weights is None:
+			self.weights = np.random.normal(0, 1.0/np.sqrt(self.filters), (self.filters, input_units.shape[1], self.kernel_size[0], self.kernel_size[1]))
+		if self.bias is None:
+			self.bias = np.random.normal(0, 1.0/np.sqrt(self.filters), (self.filters,1))
 
-		self.output_units = np.array(output_units)
-		activated_output_units = self.activation.function(self.output_units)
+		N, C, H, W = input_units.shape
+		num_filters,_, filter_height, filter_width = self.weights.shape
+		stride, pad = self.stride, self.padding
 
-		return activated_output_units
+		# Create output
+		out_height = (H + 2 * pad - filter_height) // stride + 1
+		out_width = (W + 2 * pad - filter_width) // stride + 1
+		out = np.zeros((N, num_filters, out_height, out_width))
+
+		self.x_cols = im2col_indices(input_units, filter_height, filter_width, pad, stride)
+		# self.x_cols = im2col_cython(input_units, self.weights.shape[2], self.weights.shape[3], pad, stride)
+		res = self.weights.reshape((self.weights.shape[0], -1)).dot(self.x_cols) + self.bias.reshape(-1, 1)
+
+		out = res.reshape(self.weights.shape[0], out.shape[2], out.shape[3], input_units.shape[0])
+		out = out.transpose(3, 0, 1, 2)
+
+		self.output_units = out
+		out = self.activation.function(out)
+
+		return out
 
 	def backward_pass(self, input_units, grad_activated_output):
 
-		self.grad_weights = [np.zeros(kernel.shape) for kernel in self.weights]
-		self.grad_bias = [np.zeros((1,1)) for bias in self.bias]
-		# grad_activated_input = np.zeros(input_units.shape)
+		x, w, b, x_cols = input_units, self.weights, self.bias, self.x_cols
+		stride, pad = self.stride, self.padding
 
-		total_grad_input = []
-		for batch in range(input_units.shape[0]):
-			grad_input = []
-			image = np.pad(input_units[batch], ((0,0), self.padding, self.padding), mode = 'constant')
-			grad_activated_input = np.zeros(image.shape)
-			for i in range(len(self.weights)):
-				# For Each Kernel and Bias
+		grad_output = grad_activated_output*self.activation.derivative(self.output_units)
+		db = np.sum(grad_output, axis=(0, 2, 3))[:,np.newaxis]
 
-				old_row, old_col = image.shape[1], image.shape[2]
-				eff_output_index = i
-				nr, nc = 0,0
-				for r in range(0, old_row - self.kernel_size[0] + 1, self.stride):
-					nc = 0
-					for c in range(0, old_col - self.kernel_size[1] + 1, self.stride):
-						grad_output_units = np.multiply(grad_activated_output[batch,eff_output_index,nr,nc],\
-							self.activation.derivative(self.output_units[batch, eff_output_index, nr, nc]))
+		num_filters, _, filter_height, filter_width = w.shape
+		dout_reshaped = grad_output.transpose(1, 2, 3, 0).reshape(num_filters, -1)
+		dw = dout_reshaped.dot(x_cols.T).reshape(w.shape)
 
-						grad_activated_input[:,r : r + self.kernel_size[0], c : c + self.kernel_size[1]] +=\
-						 	np.multiply(grad_output_units,self.weights[i])
+		dx_cols = w.reshape(num_filters, -1).T.dot(dout_reshaped)
+		dx = col2im_indices(dx_cols, x.shape, filter_height, filter_width, pad, stride)
 
-						self.grad_weights[i] += \
-						 np.multiply(image[:,r : r + self.kernel_size[0], c : c + self.kernel_size[1]], grad_output_units).sum(axis=0)
-						self.grad_bias[i] += grad_output_units.sum()
-
-						nc += 1
-					nr += 1
-				
-				# Add the image
-				# grad_input.append(grad_activated_input)
-			grad_input = np.array(grad_activated_input[:,self.padding[0]:-self.padding[0],self.padding[1]:-self.padding[1]])
-			total_grad_input.append(grad_input)
-
-		self.grad_bias = np.array(self.grad_bias)
-		self.grad_weights = np.array(self.grad_weights)
-
-		return np.array(total_grad_input)
+		self.grad_weights = dw 
+		self.grad_bias = db
+		return dx
 
 	def update(self, learning_rate):
 		self.weights -= learning_rate*self.grad_weights
 		self.bias 	 -= learning_rate*self.grad_bias
 
+	def run(self, input_units):
+		return self.forward_pass(input_units)
 
-layer = Conv2D(1,(5,5), stride = 4)
-print(a.shape)
-o = layer.forward_pass(a.copy())
-print(o.shape)
-print(layer.backward_pass(a,o).shape)
-layer.update(0.01)
-maxpool = Maxpool((3,3), stride = 2)
-o2 = maxpool.forward_pass(o)
-print(o2.shape)
-print(maxpool.backward_pass(o,o2).shape)
+
+# layer = Conv2D(1,(3,3), stride = 1)
+# print(a.shape)
+# o = layer.forward_pass(a.copy())
+# print(o.shape)
+# print(layer.backward_pass(a,o).shape)
+# layer.update(0.01)
+# maxpool = Maxpool((3,3), stride = 2)
+# o2 = maxpool.forward_pass(o)
+# print(o2.shape)
 

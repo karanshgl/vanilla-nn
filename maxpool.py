@@ -1,5 +1,5 @@
 import numpy as np
-
+from im2col import *
 
 class Maxpool:
 
@@ -8,7 +8,7 @@ class Maxpool:
 		self.kernel_size = kernel_size
 		self.stride = stride
 		self.output_units = None
-		self.padding = ((kernel_size[0]-1)//2, (kernel_size[1]-1)//2) if padding == 'same' else (0,0)
+		self.padding = (kernel_size[0]-1)//2 if padding == 'same' else 0
 
 	def forward_pass(self, input_units):
 		"""
@@ -18,49 +18,46 @@ class Maxpool:
 		Returns:
 		The output_units
 		"""
-		new_row = ((input_units.shape[2]-self.kernel_size[0] + 2*self.padding[0])//self.stride) + 1
-		new_col = ((input_units.shape[3]-self.kernel_size[1] + 2*self.padding[1])//self.stride) + 1
+		N, C, H, W = input_units.shape
+		pool_height, pool_width = self.kernel_size[0], self.kernel_size[1]
+		stride, pad = self.stride, self.padding
 
-		self.masks = np.zeros((input_units.shape[0], input_units.shape[1], input_units.shape[2] + self.padding[0], input_units.shape[3] + self.padding[1]))
-		self.output_units = np.zeros((input_units.shape[0], input_units.shape[1], new_row, new_col))
+		# assert (H - pool_height) % stride == 0, 'Invalid height'
+		# assert (W - pool_width) % stride == 0, 'Invalid width'
 
+		out_height = (H - pool_height + 2*pad) // stride + 1
+		out_width = (W - pool_width + 2*pad) // stride + 1
 
-		for b,batch in enumerate(input_units):
-			batch = np.pad(batch, ((0,0), self.padding, self.padding), mode = 'constant')
-			for d,depth in enumerate(batch):
-				nr = 0
-				nc = 0
-				for r in range(0, depth.shape[0] - self.kernel_size[0] + 1, self.stride):
-					nc = 0
-					for c in range(0, depth.shape[1] - self.kernel_size[1] + 1, self.stride):
-						self.masks[b, d, r:r + self.kernel_size[0], c:c + self.kernel_size[1]] = \
-						depth[r:r + self.kernel_size[0], c:c + self.kernel_size[1]].max(keepdims = True) ==\
-						depth[r:r + self.kernel_size[0], c:c + self.kernel_size[1]]
-						self.output_units[b,d,nr,nc] = depth[r:r + self.kernel_size[0], c:c + self.kernel_size[1]].max()
-						nc += 1
-					nr += 1
+		x_split = input_units.reshape(N * C, 1, H, W)
+		self.x_cols = im2col_indices(x_split, pool_height, pool_width, pad, stride)
+		self.x_cols_argmax = np.argmax(self.x_cols, axis=0)
 
-		return self.output_units
+		x_cols_max = self.x_cols[self.x_cols_argmax, np.arange(self.x_cols.shape[1])]
+		out = x_cols_max.reshape(out_height, out_width, N, C).transpose(2, 3, 0, 1)
+
+		# cache = (x, x_cols, x_cols_argmax, pool_param)
+		return out
+
 
 
 	def backward_pass(self, input_units, grad_activated_output):
 		"""
 		"""
-		input_units = np.pad(input_units, ((0,0), (0,0), self.padding, self.padding), mode = 'constant')
-		grad_activated_mask = np.zeros(input_units.shape)
-		for b,batch in enumerate(input_units):
-			for d,depth in enumerate(batch):
-				nr = 0
-				nc = 0
-				for r in range(0, depth.shape[0] - self.kernel_size[0] + 1, self.stride):
-					nc = 0
-					for c in range(0, depth.shape[1] - self.kernel_size[1] + 1, self.stride):
-						grad_activated_mask[b, d, r:r + self.kernel_size[0], c:c + self.kernel_size[1]] += \
-						self.masks[b, d, r:r + self.kernel_size[0], c:c + self.kernel_size[1]]*self.output_units[b,d,nr,nc] 
-						nc += 1
-					nr += 1
+		x, x_cols, x_cols_argmax = input_units, self.x_cols, self.x_cols_argmax
+		N, C, H, W = x.shape
+		pool_height, pool_width = self.kernel_size[0], self.kernel_size[1]
+		stride, pad = self.stride, self.padding
 
-		return grad_activated_mask[:,:,self.padding[0]:-self.padding[0],self.padding[1]:-self.padding[1]]
+		dout_reshaped = grad_activated_output.transpose(2, 3, 0, 1).flatten()
+		dx_cols = np.zeros_like(x_cols)
+		dx_cols[x_cols_argmax, np.arange(dx_cols.shape[1])] = dout_reshaped
+		dx = col2im_indices(dx_cols, (N * C, 1, H, W), pool_height, pool_width, pad, stride)
+		dx = dx.reshape(x.shape)
+
+		return dx
+
+	def run(self, input_units):
+		return self.forward_pass(input_units)
 
 
 	def update(self, learning_rate):

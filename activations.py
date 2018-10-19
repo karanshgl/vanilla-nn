@@ -21,3 +21,7 @@ class Activation:
 			if activation == "relu":
 				self.function = lambda x: (x>0)*x
 				self.derivative = lambda x: (x>0)*1
+
+			if activation == "leaky_relu":
+				self.function = lambda x: (x>0)*x + (x<0)*0.01*x
+				self.derivative: lambda x: (x>0)*1 + (x<0)*0.01
