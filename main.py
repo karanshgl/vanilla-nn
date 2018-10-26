@@ -13,24 +13,32 @@ import utils
 #from keras.models import Sequential
 #import keras.layers as L
 #from keras.optimizers import SGD
-def getModel(X, Y, epochs):
-	model = Model(learning_rate = 0.01, batch_size = 64, epochs = 200, optimizer = Adam())
-	model.add(Dropout(0.5))
+def getModel(X, Y, val_X, val_Y):
+	model = Model(learning_rate = 0.05, batch_size = 64, epochs = 1000, optimizer = None)
+	# model.add(Dropout(0.5))
 	model.add(Dense(1024, 512, activation = 'sigmoid'))
-	model.add(Dropout(0.5))
+	# model.add(Dropout(0.5))
 	model.add(Dense(512, 64, activation = 'sigmoid'))
-	model.add(Dropout(0.5))
+	# model.add(Dropout(0.5))
 	model.add(Dense(64, 1))
 	print("starting to train")
-	model.train(X,Y)
+	model.train(X,Y, val_X, val_Y)
+	model.save_history("4-05.csv")
 
-	# model.add(Conv2D(4,(3,3), activation = 'sigmoid'))
+	# model.add(Conv2D(16,(3,3), activation = 'relu'))
 	# model.add(Maxpool((3,3), stride = 2)) # 16x16
-	# model.add(Conv2D(1,(3,3), activation = 'sigmoid'))
+	# model.add(Batchnorm())
+	# model.add(Dropout(0.5))
+	# model.add(Conv2D(4,(3,3), activation = 'relu'))
 	# model.add(Maxpool((3,3), stride = 2)) # 8x8
-	# # model.add(Dropout(0.5))
+	# model.add(Batchnorm())
+	# model.add(Dropout(0.5))
+	# model.add(Conv2D(1,(3,3), activation = 'relu'))
+	# model.add(Maxpool((3,3), stride = 2)) # 8x8
+	# model.add(Batchnorm())
+	# model.add(Dropout(0.5))
 	# model.add(Flatten())
-	# model.add(Dense(64,1))
+	# model.add(Dense(16,1))
 	# model.train(X,Y)
 
 
@@ -43,52 +51,37 @@ def getModel(X, Y, epochs):
 	#model.train(X, Y, lr, epochs)
 	return model
 
-def get_minibatch(X,Y, batch_size):
-	random_indices = np.random.choice(X.shape[0], batch_size)
-	return X[random_indices], Y[random_indices]
+def prepareTrainData(X, Y):
+	
 
-def prepareData(X, Y):
+	for i in range(X.shape[0]):
+		X[i,:] = X[i,:] -X[i,:].min()
+		X[i,:] = X[i,:]/X[i,:].max() if X[i,:].max()>0 else 0
+
+	means = []
+	stds = []
 	for i in range(X.shape[1]):
+		means.append(X[:,i].mean())
+		stds.append(X[:,i].std())
 		X[:, i] = (X[:, i]-X[:, i].mean())/X[:, i].std()
-	# Y = Y-Y.min()
-	# Y = Y/Y.max()
-	# X -= X.min()
-	# X /= X.max()
 
-	return X, Y
+	return X, Y, means, stds
 
-
-def getKerasModel(X, Y):
-	model = Sequential()
-	model.add(L.Dense(512, input_shape=(1024, ), activation='sigmoid'))
-	model.add(L.Dense(64, activation='sigmoid'))
-	model.add(L.Dense(1))
-	sgd = SGD(lr=0.005)
-	model.compile(optimizer=sgd, loss='mse', metrics=['mse'])
-	model.fit(X, Y, batch_size=500, epochs=1000)
-	return model
+def prepareTestData(X,Y,means,stds):
+	
+	for i in range(X.shape[0]):
+		X[i,:] = X[i,:] -X[i,:].min()
+		X[i,:] = X[i,:]/X[i,:].max() if X[i,:].max()>0 else 0
 
 
-# data = pd.read_csv('datanew.csv')
-# data = np.array(data.values)
-# data_x = data[:, :-1]
-# data_y = data[:, -1]
-# data_x, data_y = prepareData(data_x, data_y)
-# X = data_x
-# Y = data_y[:, np.newaxis]
-# print(X.shape, Y.shape)
+	for i in range(X.shape[1]):
+		X[:,i] = (X[:,i] - means[i])/stds[i]
+
+	return X,Y
+
 X, Y = utils.get_data('steering', 0)
 # print(X.shape)
-X_test, Y_test = X[1500:], Y[1500:]
-X, Y = prepareData(X[:1500],Y[:1500])
-model = getModel(X, Y, 10000)
-X, Y = prepareData(X_test, Y_test)
-print("TEST")
-model.test(X,Y)
-"""
-images, angles = loadImages('steering')
-images, angles = prepareData(images, angles)
-print("aquired images")
-#model = getKerasModel(images, angles)
-model = getModel(images, angles, 0.000005, 0.4, 500, 1000)
-"""
+X_train, Y_train, means, stds = prepareTrainData(X[:17600],Y[:17600])
+X_test, Y_test = X[17600:], Y[17600:]
+X_val, Y_val = prepareTestData(X_test, Y_test, means, stds)
+model = getModel(X_train, Y_train, X_val, Y_val)

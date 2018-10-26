@@ -1,5 +1,4 @@
 import numpy as np
-from dense_layer import Dense
 
 class Model:
 
@@ -14,6 +13,7 @@ class Model:
 		self.batch_size = batch_size
 		self.epochs = epochs
 		self.optimizer = None
+		self.history = np.zeros((epochs,3))
 
 
 	def generate_batches(self, X, Y):
@@ -32,39 +32,54 @@ class Model:
 
 
 
-	def train(self, X, Y):
+	def train(self, X, Y, val_X, val_Y):
 		
 		for epoch in range(self.epochs):
 
-			loss = 0
+			# loss = 0
 			for x,y in self.generate_batches(X,Y):
 				self.units[0] = x
 				for i, layer in enumerate(self.layers):
 					self.units[i+1] = layer.forward_pass(self.units[i])
 
-				error = self.units[-1]-y.reshape((len(y), 1))
-				loss += np.square(error).sum()/2
+				error = self.units[-1]-y
+				# loss += np.square(error).sum()/2
 
 				learning_rate = self.learning_rate if self.optimizer is None else self.optimizer.step_size(self.learning_rate, error.sum())
 
 				for layer, unit in zip(reversed(self.layers), reversed(self.units[:-1])):
 					error = layer.backward_pass(unit,error)
 					layer.update(learning_rate)
-				
-			print("Loss: ", loss/X.shape[0])
 
-
-	def test(self, X, Y):
-
-		loss = 0
-		for x,y in self.generate_batches(X,Y):
-			unit = x
+			# Get Training Loss
+			train_loss = 0
+			unit = X
 			for i,layer in enumerate(self.layers):
 				unit = layer.run(unit)
+			train_loss = np.square(unit-Y).mean()/2
 
-			loss += np.square(unit-y).sum()/2
-		
-		print("Loss: ", loss/X.shape[0])
+			# Get Validation Loss
+			val_loss = 0
+			unit = val_X
+			for i,layer in enumerate(self.layers):
+				unit = layer.run(unit)
+			val_loss = np.square(unit-val_Y).mean()/2
+
+			self.history[epoch,0] = epoch
+			self.history[epoch,1] = train_loss
+			self.history[epoch,2] = val_loss
+				
+			print("Epoch: {:>4} | Training: {:.10f} | Validation: {:.10f} ".format\
+				(self.history[epoch,0]+1, self.history[epoch,1], self.history[epoch,2]))
+
+	def predict(self, X):
+		unit = X
+		for i,layer in enumerate(self.layers):
+			unit = layer.run(unit)
+		return unit
+
+	def save_history(self, filename):
+		np.savetxt(filename, self.history, delimiter=',')
 
 	def add(self, layer):
 		self.layers.append(layer)

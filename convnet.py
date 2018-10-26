@@ -37,17 +37,14 @@ class Conv2D:
 		if self.bias is None:
 			self.bias = np.random.normal(0, 1.0/np.sqrt(self.filters), (self.filters,1))
 
-		N, C, H, W = input_units.shape
-		num_filters,_, filter_height, filter_width = self.weights.shape
-		stride, pad = self.stride, self.padding
+		batch_size, channels, input_height, input_width = input_units.shape
 
 		# Create output
-		out_height = (H + 2 * pad - filter_height) // stride + 1
-		out_width = (W + 2 * pad - filter_width) // stride + 1
-		out = np.zeros((N, num_filters, out_height, out_width))
+		output_height = (input_height + 2 * self.padding - self.kernel_size[0]) // self.stride + 1
+		output_width = (input_width + 2 * self.padding - self.kernel_size[1]) // self.stride + 1
+		out = np.zeros((batch_size, self.filters, output_height, output_width))
 
-		self.x_cols = im2col_indices(input_units, filter_height, filter_width, pad, stride)
-		# self.x_cols = im2col_cython(input_units, self.weights.shape[2], self.weights.shape[3], pad, stride)
+		self.x_cols = im2col_indices(input_units, self.kernel_size[0], self.kernel_size[1], self.padding, self.stride)
 		res = self.weights.reshape((self.weights.shape[0], -1)).dot(self.x_cols) + self.bias.reshape(-1, 1)
 
 		out = res.reshape(self.weights.shape[0], out.shape[2], out.shape[3], input_units.shape[0])
@@ -60,22 +57,16 @@ class Conv2D:
 
 	def backward_pass(self, input_units, grad_activated_output):
 
-		x, w, b, x_cols = input_units, self.weights, self.bias, self.x_cols
-		stride, pad = self.stride, self.padding
-
 		grad_output = grad_activated_output*self.activation.derivative(self.output_units)
-		db = np.sum(grad_output, axis=(0, 2, 3))[:,np.newaxis]
+		self.grad_bias = np.sum(grad_output, axis=(0, 2, 3))[:,np.newaxis]
 
-		num_filters, _, filter_height, filter_width = w.shape
-		dout_reshaped = grad_output.transpose(1, 2, 3, 0).reshape(num_filters, -1)
-		dw = dout_reshaped.dot(x_cols.T).reshape(w.shape)
+		grad_output = grad_output.transpose(1, 2, 3, 0).reshape(self.filters, -1)
+		self.grad_weights = grad_output.dot(self.x_cols.T).reshape(self.weights.shape)
 
-		dx_cols = w.reshape(num_filters, -1).T.dot(dout_reshaped)
-		dx = col2im_indices(dx_cols, x.shape, filter_height, filter_width, pad, stride)
+		grad_x_cols = self.weights.reshape(self.filters, -1).T.dot(grad_output)
+		grad_activated_input = col2im_indices(grad_x_cols, input_units.shape, self.kernel_size[0], self.kernel_size[1], self.padding, self.stride)
 
-		self.grad_weights = dw 
-		self.grad_bias = db
-		return dx
+		return grad_activated_input
 
 	def update(self, learning_rate):
 		self.weights -= learning_rate*self.grad_weights

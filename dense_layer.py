@@ -10,8 +10,12 @@ class Dense:
 		output_units = Number of output nodes
 		activation = The activation layer
 		"""
-		self.weights = np.random.normal(0.0, 1.0/np.sqrt(input_units), (input_units, output_units))
-		self.bias = np.random.normal(0.0, 1.0/np.sqrt(input_units), (1, output_units))
+		# self.weights = np.random.normal(0.0, 1.0/np.sqrt(input_units), (input_units, output_units))
+		# self.bias = np.random.normal(0.0, 1.0/np.sqrt(input_units), (1, output_units))
+		# self.weights = np.random.uniform(-0.01, 0.01, (input_units, output_units))
+		self.weights = np.linspace(-0.01, 0.01, num = input_units*output_units)
+		self.weights = self.weights.reshape((input_units, output_units))
+		self.bias = np.zeros((1,output_units))
 		self.activation = Activation(activation)
 
 		# Initialize Other Things as Zero
