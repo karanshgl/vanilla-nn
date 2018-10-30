@@ -1,4 +1,5 @@
 import numpy as np
+import copy
 
 
 class Dropout:
@@ -8,6 +9,7 @@ class Dropout:
 		self.keep_prob = keep_prob
 		self.mask = None
 		self.output_units = None
+		self.optimizer = None
 
 	def forward_pass(self, input_units):
 		"""
@@ -33,4 +35,7 @@ class Dropout:
 
 
 	def update(self, learning_rate):
+		pass
+
+	def set_optimizer(self, optimizer):
 		pass

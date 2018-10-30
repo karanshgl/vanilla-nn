@@ -16,15 +16,17 @@ data = np.loadtxt(sys.argv[1], delimiter = ',')
 data = np.array(data)
 fig, ax = plt.subplots()
 
-data2 = np.array([data[i,:] for i in range(data.shape[0]) if i%50 == 0])
+data2 = np.array([data[i,:] for i in range(data.shape[0]) if i%1 == 0])
 
 
 
-plt.title("Squared Error")
+plt.suptitle("Squared Loss")
+plt.title("Learning Rate: 0.001, Batch Size: 32")
 plt.xlabel("Epochs")
-plt.ylabel("Error")
-ax.plot(data2[:,0], data2[:,1], color = 'r', label = 'Train Loss')
-ax.plot(data2[:,0], data2[:,2], color = 'b', label = 'Test Loss')
+plt.ylabel("Loss")
+plt.ylim(-0.01,0.21)
+ax.plot(data2[:,0], data2[:,1], color = 'r', label = 'Training Loss')
+ax.plot(data2[:,0], data2[:,2], color = 'b', label = 'Validation Loss')
 # ax.plot(data3[:,0], data3[:,1], color = 'g', label = 'Test Accuracy')
-legend = plt.legend(loc='center right')
+legend = plt.legend(loc='upper right')
 plt.show()

@@ -14,32 +14,42 @@ import utils
 #import keras.layers as L
 #from keras.optimizers import SGD
 def getModel(X, Y, val_X, val_Y):
-	model = Model(learning_rate = 0.05, batch_size = 64, epochs = 1000, optimizer = None)
+	model = Model(learning_rate = 0.01, batch_size = 64, epochs = 750, optimizer = None)
 	# model.add(Dropout(0.5))
 	model.add(Dense(1024, 512, activation = 'sigmoid'))
 	# model.add(Dropout(0.5))
+	# # model.add(Batchnorm())
+	# # model.add(Dropout(0.5))
 	model.add(Dense(512, 64, activation = 'sigmoid'))
 	# model.add(Dropout(0.5))
-	model.add(Dense(64, 1))
+	# # model.add(Batchnorm())
+	# # model.add(Dense(256, 128, activation = 'sigmoid'))
+	# # # model.add(Dropout(0.5))
+	# # model.add(Batchnorm())
+	# # model.add(Dense(128, 64, activation = 'sigmoid'))
+	# # # model.add(Dropout(0.5))
+	# # model.add(Batchnorm())
+	# model.add(Dense(256,32, activation = 'sigmoid'))
+	# model.add(Dropout(0.5))
+	model.add(Dense(64,1))
 	print("starting to train")
 	model.train(X,Y, val_X, val_Y)
-	model.save_history("4-05.csv")
+	model.save_history("64.csv")
 
-	# model.add(Conv2D(16,(3,3), activation = 'relu'))
-	# model.add(Maxpool((3,3), stride = 2)) # 16x16
-	# model.add(Batchnorm())
+	# model.add(Conv2D(2,(3,3), activation = 'relu'))
+	# model.add(Maxpool((2,2), stride = 2)) # 16x16
 	# model.add(Dropout(0.5))
 	# model.add(Conv2D(4,(3,3), activation = 'relu'))
-	# model.add(Maxpool((3,3), stride = 2)) # 8x8
-	# model.add(Batchnorm())
+	# model.add(Maxpool((2,2), stride = 2)) # 8x8
 	# model.add(Dropout(0.5))
-	# model.add(Conv2D(1,(3,3), activation = 'relu'))
-	# model.add(Maxpool((3,3), stride = 2)) # 8x8
-	# model.add(Batchnorm())
+	# model.add(Conv2D(8,(3,3), activation = 'relu'))
+	# model.add(Maxpool((2,2), stride = 2)) # 4x4
 	# model.add(Dropout(0.5))
 	# model.add(Flatten())
-	# model.add(Dense(16,1))
-	# model.train(X,Y)
+	# model.add(Dense(128,32, activation = 'tanh'))
+	# model.add(Dense(32,1))
+	# model.train(X,Y, val_X, val_Y)
+	# model.save_history("5-cnn-adam-relu-tanh-16-8-4-128-32-1.csv")
 
 
 	# model.add(Dense(20,10, activation = 'relu'))

@@ -1,4 +1,5 @@
 import numpy as np
+import copy
 
 class Batchnorm():
 
@@ -7,6 +8,10 @@ class Batchnorm():
         self.gamma = None
         self.beta = None
         self.epsilon = 1e-8
+        self.optimizer = None
+
+        self.gamma_opt = None
+        self.beta_opt = None
 
     def forward_pass(self, input_units):
         """
@@ -20,6 +25,7 @@ class Batchnorm():
         Lastly the distribution is shifted using gamma and beta: y = gamma*x' + beta
 
         """
+
         self.input_units_flattened = input_units.flatten().reshape(input_units.shape[0],-1)
 
         if self.gamma is None:
@@ -44,11 +50,11 @@ class Batchnorm():
         grad_activated_output = grad_activated_output.flatten().reshape(batch_size,-1)
         x_minus_mean = self.input_units_flattened - self.mean
         std_inv = 1.0/np.sqrt(self.variance + self.epsilon)
-        
         self.grad_beta = grad_activated_output.sum(axis = 0)
         self.grad_gamma = np.multiply(grad_activated_output, self.output_units).sum(axis = 0)
+        
 
-        grad_input_units = np.multiply(self.gamma, std_inv)/batch_size + \
+        grad_input_units = np.multiply(self.gamma, std_inv)/(batch_size+self.epsilon) + \
                           (batch_size*grad_activated_output - np.multiply(self.grad_gamma, self.output_units) - self.grad_beta)
 
         return grad_input_units.reshape(input_units.shape)
@@ -57,7 +63,23 @@ class Batchnorm():
     def run(self, input_units):
         return self.forward_pass(input_units)
 
-    def update(self, learning_rate):
+    def set_optimizer(self, optimizer):
+        if optimizer is None:
+            return
+        else:
+            self.optimizer = optimizer
+            self.gamma_opt = copy.deepcopy(optimizer)
+            self.beta_opt = copy.deepcopy(optimizer)
 
-        self.gamma -= learning_rate*self.grad_gamma
-        self.beta  -= learning_rate*self.grad_beta
+    def update(self, learning_rate):
+        """
+        Params:
+        learning_rate
+        """
+        if self.optimizer == None:
+            self.gamma -= learning_rate*self.grad_gamma
+            self.beta  -= learning_rate*self.grad_beta
+        else:
+            self.gamma -= self.gamma_opt.step_size(learning_rate, self.grad_gamma)
+            self.beta -= self.beta_opt.step_size(learning_rate, self.grad_beta)
+

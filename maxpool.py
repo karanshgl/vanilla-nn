@@ -1,5 +1,7 @@
 import numpy as np
 from im2col import *
+import copy
+
 
 class Maxpool:
 
@@ -9,6 +11,7 @@ class Maxpool:
 		self.stride = stride
 		self.output_units = None
 		self.padding = (kernel_size[0]-1)//2 if padding == 'same' else 0
+		self.optimizer = None
 
 	def forward_pass(self, input_units):
 		"""
@@ -52,4 +55,7 @@ class Maxpool:
 
 
 	def update(self, learning_rate):
+		pass
+
+	def set_optimizer(self, optimizer):
 		pass

@@ -12,17 +12,14 @@ class Model:
 		self.learning_rate = learning_rate
 		self.batch_size = batch_size
 		self.epochs = epochs
-		self.optimizer = None
+		self.optimizer = optimizer
 		self.history = np.zeros((epochs,3))
 
 
 	def generate_batches(self, X, Y):
 
-		# print(X.shape, Y.shape)
 		indices = np.arange(X.shape[0])
 		np.random.shuffle(indices)
-		# concat = np.concatenate((X,Y), axis = 1)
-		# X,Y = concat[:,:-1], concat[:,-1]
 		X, Y = X[indices], Y[indices]
 		batch_count = X.shape[0]//self.batch_size + 1
 		for i in range(batch_count):
@@ -38,20 +35,25 @@ class Model:
 
 			# loss = 0
 			for x,y in self.generate_batches(X,Y):
+
+				if(x.shape[0] == 0): continue
+
 				self.units[0] = x
 				for i, layer in enumerate(self.layers):
 					self.units[i+1] = layer.forward_pass(self.units[i])
 
-				error = self.units[-1]-y
+				error = (self.units[-1]-y)
+				# print(error.sum())
 				# loss += np.square(error).sum()/2
 
-				learning_rate = self.learning_rate if self.optimizer is None else self.optimizer.step_size(self.learning_rate, error.sum())
-
+				# learning_rate = self.learning_rate if self.optimizer is None else self.optimizer.step_size(self.learning_rate, error)
+				# print(learning_rate)
 				for layer, unit in zip(reversed(self.layers), reversed(self.units[:-1])):
 					error = layer.backward_pass(unit,error)
-					layer.update(learning_rate)
-
+					layer.update(self.learning_rate)
+				
 			# Get Training Loss
+			# print(self.layers[0].grad_weights)
 			train_loss = 0
 			unit = X
 			for i,layer in enumerate(self.layers):
@@ -82,6 +84,7 @@ class Model:
 		np.savetxt(filename, self.history, delimiter=',')
 
 	def add(self, layer):
+		layer.set_optimizer(self.optimizer)
 		self.layers.append(layer)
 		self.units.append(None)
 

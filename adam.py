@@ -8,8 +8,8 @@ class Adam:
 		self.beta_2 = beta_2
 		self.epsilon = epsilon
 
-		self.m = 0
-		self.v = 0
+		self.m = None
+		self.v = None
 		self.t = 0
 
 	def step_size(self, alpha, grad):
@@ -19,9 +19,11 @@ class Adam:
 		# Update timestep
 		self.t += 1
 		# Update first moment
-		self.m = self.beta_1*self.m + (1-self.beta_1)*grad
+		if self.m is None: self.m = (1-self.beta_1)*grad
+		else: self.m = self.beta_1*self.m + (1-self.beta_1)*grad
 		# Update second moment
-		self.v = self.beta_2*self.v + (1-self.beta_2)*grad**2
+		if self.v is None: self.v = (1-self.beta_2)*grad**2
+		else: self.v = self.beta_2*self.v + (1-self.beta_2)*grad**2
 		# Bias corrected first moment
 		m_ = self.m/(1-np.power(self.beta_1, self.t))
 		# Bias corrected second moment

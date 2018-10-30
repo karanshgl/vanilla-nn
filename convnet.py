@@ -2,6 +2,7 @@ import numpy as np
 from activations import Activation
 from maxpool import Maxpool
 from im2col import *
+import copy
 
 
 class Conv2D:
@@ -27,6 +28,10 @@ class Conv2D:
 		self.output_units = []
 
 		self.activation = Activation(activation)
+		self.optimizer = None
+		self.weight_opt = None
+		self.bias_opt = None
+
 
 
 
@@ -68,12 +73,30 @@ class Conv2D:
 
 		return grad_activated_input
 
-	def update(self, learning_rate):
-		self.weights -= learning_rate*self.grad_weights
-		self.bias 	 -= learning_rate*self.grad_bias
-
 	def run(self, input_units):
 		return self.forward_pass(input_units)
+
+	def set_optimizer(self, optimizer):
+		if optimizer is None:
+			return
+		else:
+			self.optimizer = optimizer
+			self.weight_opt = copy.deepcopy(optimizer)
+			self.bias_opt = copy.deepcopy(optimizer)
+
+	def update(self, learning_rate):
+		"""
+		Params:
+		learning_rate
+		"""
+		if self.optimizer == None:
+			self.weights -= learning_rate*self.grad_weights
+			self.bias    -= learning_rate*self.grad_bias
+		else:
+			self.weights -= self.weight_opt.step_size(learning_rate, self.grad_weights)
+			self.bias -= self.bias_opt.step_size(learning_rate, self.grad_bias)
+
+
 
 
 # layer = Conv2D(1,(3,3), stride = 1)

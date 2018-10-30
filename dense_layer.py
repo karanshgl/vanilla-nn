@@ -1,5 +1,7 @@
 import numpy as np
 from activations import Activation
+from adam import Adam
+import copy
 
 class Dense:
 
@@ -17,11 +19,15 @@ class Dense:
 		self.weights = self.weights.reshape((input_units, output_units))
 		self.bias = np.zeros((1,output_units))
 		self.activation = Activation(activation)
+		self.optimizer = None
 
 		# Initialize Other Things as Zero
 		self.output_units = None
 		self.grad_weights = 0
 		self.grad_bias = 0
+
+		self.weight_opt = None
+		self.bias_opt = None
 
 
 	def forward_pass(self, input_units):
@@ -59,13 +65,24 @@ class Dense:
 	def run(self, input_units):
 		return self.forward_pass(input_units)
 
+	def set_optimizer(self, optimizer):
+		if optimizer is None:
+			return
+		else:
+			self.optimizer = optimizer
+			self.weight_opt = copy.deepcopy(optimizer)
+			self.bias_opt = copy.deepcopy(optimizer)
 
 	def update(self, learning_rate):
 		"""
 		Params:
 		learning_rate
 		"""
-		self.weights -= learning_rate*self.grad_weights
-		self.bias    -= learning_rate*self.grad_bias
+		if self.optimizer == None:
+			self.weights -= learning_rate*self.grad_weights
+			self.bias    -= learning_rate*self.grad_bias
+		else:
+			self.weights -= self.weight_opt.step_size(learning_rate, self.grad_weights)
+			self.bias -= self.bias_opt.step_size(learning_rate, self.grad_bias)
 
 

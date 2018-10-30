@@ -1,10 +1,12 @@
 import numpy as np
+import copy
 
 
 class Flatten:
 
 	def __init__(self):
 		self.output_units = None
+		self.optimizer = None
 		pass
 
 	def forward_pass(self, input_units):
@@ -19,6 +21,10 @@ class Flatten:
 
 	def run(self, input_units):
 		return self.forward_pass(input_units)
+
+	def set_optimizer(self, optimizer):
+		pass
+
 
 # fl = Flatten()
 # a = np.arange(96)
