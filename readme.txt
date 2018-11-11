@@ -21,6 +21,7 @@ dropout.py: Class for Dropouts
 flatten.py: Class for Flatten Layer
 maxpool.py: Class for Maxpooling Layers
 im2col.py: helper function from Stanford's CS231n course.
+batchnorm.py: Having some problem, not a part of the submission
 
 ### HOW TO RUN ###
 
@@ -31,3 +32,4 @@ Then answer the commandline queries.
 
 Note: Kindly install numpy and scipy before running the code.
 Note #2: The dataset used did not have img_0.jpg hence it was removed from data.txt
+Note #3: Make sure to keep the steering folder in the root(code) directory

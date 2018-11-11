@@ -5,7 +5,6 @@ from dropout import Dropout
 from convnet import Conv2D
 from maxpool import Maxpool
 from flatten import Flatten
-from batchnorm import Batchnorm
 from adam import Adam
 import pandas as pd
 import utils
